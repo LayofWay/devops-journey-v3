@@ -1,0 +1,20 @@
+# --- Ansible ---
+*.retry
+ansible.cfg
+inventory.ini
+
+# --- Секреты и окружение ---
+.env
+*.env
+.vault_pass
+
+# --- Python / Виртуальные окружения ---
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# --- OS и логи ---
+.DS_Store
+Thumbs.db
+*.log 
