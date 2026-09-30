@@ -2,5 +2,7 @@
 - name: Настройка PostgreSQL (Stage 01)
   hosts: local
   connection: local
+  vars_files:
+    - roles/postgresql/vault/secrets.yml  # ← Подключаем зашифрованный файл!
   roles:
     - postgresql

@@ -35,7 +35,7 @@
 # 4. Создание пользователя (обходной путь через shell)
 - name: Создать пользователя для приложения
   ansible.builtin.shell: |
-    psql -U postgres -c "CREATE ROLE appuser WITH LOGIN PASSWORD 'SecurePass123!' CREATEDB;"
+    psql -U postgres -c "CREATE ROLE appuser WITH LOGIN PASSWORD '{{ app_password }}' CREATEDB;"
   become: yes
   changed_when: false
   failed_when: false  # Не считать ошибкой, если пользователь уже есть
