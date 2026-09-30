@@ -1,0 +1,49 @@
+---
+# 1. Установка пакетов
+- name: Установить пакеты для PostgreSQL
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2  # Нужен для работы модулей PostgreSQL в Ansible
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_os_family == "Debian"
+
+# 2. Настройка доступа (только для лабы!)
+- name: Настроить pg_hba.conf для локального доверия (trust)
+  ansible.builtin.lineinfile:
+    # ВНИМАНИЕ: Проверь свою версию PostgreSQL (14, 15 или 16) в пути ниже!
+    # Посмотри через: ls /etc/postgresql/
+    path: /etc/postgresql/16/main/pg_hba.conf
+    regexp: '^local\s+all\s+postgres\s+peer'
+    line: 'local   all             postgres                                trust'
+    state: present
+    backup: yes
+  become: yes
+  notify: Restart PostgreSQL  # ← Дёргаем за звоночек!
+
+# 3. Запуск сервиса
+- name: Убедиться, что PostgreSQL запущен и добавлен в автозагрузку
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: yes
+  become: yes
+
+# 4. Создание пользователя (обходной путь через shell)
+- name: Создать пользователя для приложения
+  ansible.builtin.shell: |
+    psql -U postgres -c "CREATE ROLE appuser WITH LOGIN PASSWORD 'SecurePass123!' CREATEDB;"
+  become: yes
+  changed_when: false
+  failed_when: false  # Не считать ошибкой, если пользователь уже есть
+
+# 5. Создание базы данных
+- name: Создать базу данных для приложения
+  ansible.builtin.shell: |
+    psql -U postgres -c "CREATE DATABASE appdb OWNER appuser;"
+  become: yes
+  changed_when: false
+  failed_when: false  # Не считать ошибкой, если БД уже есть
