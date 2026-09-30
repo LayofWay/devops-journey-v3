@@ -1,0 +1,6 @@
+---
+- name: Настройка PostgreSQL (Stage 01)
+  hosts: local
+  connection: local
+  roles:
+    - postgresql
