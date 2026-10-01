@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # === 1. НАШЕ ПРИЛОЖЕНИЕ (ГЕРОЙ) ===
+  app:
+    build: ./app               # Собираем образ из папки app (наш Dockerfile)
+    container_name: devops-app # Удобное имя для логов
+    ports:
+      - "5000:5000"            # Пробрасываем порт: Хост:Контейнер
+    environment:
+      # Берём переменные из файла .env
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - postgres               # Ждём, пока поднимется база данных
+    networks:
+      - devops-network         # Подключаем к нашей общей сети
+    restart: unless-stopped    # Автоматически перезапускать при сбоях
+
+  # === 2. БАЗА ДАННЫХ (СКЛАД) ===
+  postgres:
+    image: postgres:16-alpine  # Лёгкий и быстрый официальный образ
+    container_name: devops-db
+    environment:
+      # Эти переменные нужны самому образу PostgreSQL при первом запуске
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data  # Магия: данные сохраняются навсегда!
+    networks:
+      - devops-network
+    restart: unless-stopped
+
+# === 3. ПОСТОЯННЫЕ ХРАНИЛИЩА (ТОМА) ===
+volumes:
+  postgres-data:  # Docker сам создаст этот том и будет хранить его между перезапусками
+
+# === 4. ИЗОЛИРОВАННАЯ СЕТЬ ===
+networks:
+  devops-network:
+    driver: bridge
