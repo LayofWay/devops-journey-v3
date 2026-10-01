@@ -1,0 +1,35 @@
+name: 🚀 CI/CD Pipeline
+
+# Запускать автоматизацию при каждом пуше в ветку main, 
+# но ТОЛЬКО если изменились файлы в папке stage-02-docker
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'stage-02-docker/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # Робот запускается на свежем сервере Ubuntu от GitHub
+    
+    steps:
+      # 1. Забираем наш код из репозитория на сервер робота
+      - name: 📥 Клонируем репозиторий
+        uses: actions/checkout@v4
+
+      # 2. Проверяем код на грубые ошибки (синтаксис Python)
+      - name: 🐍 Проверяем синтаксис Python
+        run: |
+          cd stage-02-docker/app
+          python3 -m py_compile app.py
+          echo "✅ Синтаксис Python в полном порядке!"
+
+      # 3. Собираем Docker-образ (тот самый "завод")
+      - name: 🐳 Собираем Docker-образ
+        run: |
+          cd stage-02-docker/app
+          docker build -t devops-app:ci-build .
+
+      # 4. Проверяем, что образ действительно создался
+      - name: 🏷️ Показываем созданный образ
+        run: docker images devops-app
