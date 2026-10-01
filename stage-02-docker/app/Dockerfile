@@ -29,7 +29,6 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV DB_HOST=postgres
 ENV DB_NAME=appdb
 ENV DB_USER=appuser
-ENV DB_PASSWORD=CHANGEME_IN_PRODUCTION
 
 # === 7. СЕТЬ ===
 # Открываем порт, чтобы капсула могла общаться с внешним миром
