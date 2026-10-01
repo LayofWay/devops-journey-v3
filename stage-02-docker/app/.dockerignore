@@ -1,0 +1,19 @@
+# Виртуальные окружения и кэш Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Git (он не нужен внутри капсулы)
+.git
+.gitignore
+
+# Логи и временные файлы
+*.log
+*.tmp
+
+# Сам Dockerfile и ignore (не нужны внутри образа)
+Dockerfile
+.dockerignore
