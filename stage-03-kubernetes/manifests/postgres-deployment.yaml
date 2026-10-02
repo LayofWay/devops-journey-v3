@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1  # Для БД обычно 1 реплика. Масштабирование БД — это отдельная сложная тема (StatefulSet)
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine  # Лёгкий и быстрый образ
+          ports:
+            - containerPort: 5432
+          env:
+            # Эти переменные образ PostgreSQL читает при ПЕРВОМ запуске для инициализации
+            - name: POSTGRES_DB
+              value: "appdb"
+            - name: POSTGRES_USER
+              value: "appuser"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: postgres-password
+          # Подключаем том для хранения данных
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-storage
+          emptyDir: {}  # ⚠️ ВНИМАНИЕ: Для лабы это ОК. В продакшене здесь был бы PersistentVolumeClaim (PVC)

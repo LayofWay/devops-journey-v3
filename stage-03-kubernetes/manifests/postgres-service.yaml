@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service  # 🎯 КРИТИЧНО ВАЖНО: Это имя должно совпадать с DB_HOST в приложении!
+spec:
+  selector:
+    app: postgres  # Связываем сервис с подами базы данных
+  ports:
+    - protocol: TCP
+      port: 5432         # Порт, который видит остальной кластер
+      targetPort: 5432   # Порт внутри контейнера
+  type: ClusterIP        # Доступен только внутри кластера
