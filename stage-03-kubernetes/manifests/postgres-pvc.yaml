@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce  # Только одна нода может писать сюда одновременно (стандарт для БД)
+  resources:
+    requests:
+      storage: 1Gi   # Просим выделить 1 гигабайт места

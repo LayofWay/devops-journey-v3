@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: devops-app:v1  # Наш образ, который мы загрузили в kind!
+          image: devops-app:v2  # Наш образ, который мы загрузили в kind!
           ports:
             - containerPort: 5000
           env:
@@ -32,6 +32,11 @@ spec:
                 secretKeyRef:
                   name: app-secrets      # Имя Secret
                   key: db-password       # Ключ внутри Secret
+            - name: WELCOME_MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: WELCOME_MESSAGE
           # Проверка жизнеспособности (Liveness Probe)
           livenessProbe:
             httpGet:

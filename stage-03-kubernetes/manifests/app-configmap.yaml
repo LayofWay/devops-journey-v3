@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  # Не-секретные настройки, которые можно менять "на лету"
+  WELCOME_MESSAGE: "👑 Приветствуем вас в DevOps Journey v3! (ConfigMap Edition)"
+  APP_ENV: "production"
