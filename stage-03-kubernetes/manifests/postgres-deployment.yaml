@@ -34,6 +34,15 @@ spec:
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
       volumes:
         - name: postgres-storage
-          emptyDir: {}  # ⚠️ ВНИМАНИЕ: Для лабы это ОК. В продакшене здесь был бы PersistentVolumeClaim (PVC)
+          persistentVolumeClaim:
+            claimName: postgres-pvc  # Ссылка на наш созданный PVC
+

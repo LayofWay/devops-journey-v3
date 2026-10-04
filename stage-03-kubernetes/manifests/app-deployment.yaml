@@ -44,3 +44,10 @@ spec:
               port: 5000
             initialDelaySeconds: 10
             periodSeconds: 10
+          resources:
+            requests:
+              memory: "64Mi"    # Гарантированно 64 Мегабайта ОЗУ
+              cpu: "100m"       # Гарантированно 0.1 ядра CPU (100 миллиядер)
+            limits:
+              memory: "128Mi"   # Максимум 128 Мегабайт ОЗУ (иначе под убьют)
+              cpu: "250m"       # Максимум 0.25 ядра CPU
