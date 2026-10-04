@@ -7,8 +7,8 @@ metadata:
 spec:
   ingressClassName: nginx  # Говорим, какой контроллер использовать
   rules:
-    - host: devops-app.local  # Домен, по которому будем обращаться
-      http:
+#    - host: devops-app.local  # Домен, по которому будем обращаться
+    - http:
         paths:
           - path: /
             pathType: Prefix
