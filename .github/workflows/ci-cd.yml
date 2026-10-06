@@ -1,35 +1,39 @@
-name: 🚀 CI/CD Pipeline
+name: 🚀 K8s GitOps Pipeline
 
-# Запускать автоматизацию при каждом пуше в ветку main, 
-# но ТОЛЬКО если изменились файлы в папке stage-02-docker
 on:
   push:
     branches: [ main ]
     paths:
-      - 'stage-02-docker/**'
+      - 'stage-02-docker/app/**'
+      - 'stage-03-kubernetes/manifests/app-deployment.yaml'
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest # Робот запускается на свежем сервере Ubuntu от GitHub
+  build-and-deploy:
+    # 🎯 МАГИЯ ЗДЕСЬ: говорим GitHub использовать твой локальный компьютер!
+    runs-on: self-hosted 
     
     steps:
-      # 1. Забираем наш код из репозитория на сервер робота
       - name: 📥 Клонируем репозиторий
         uses: actions/checkout@v4
 
-      # 2. Проверяем код на грубые ошибки (синтаксис Python)
-      - name: 🐍 Проверяем синтаксис Python
+      - name: 🐳 Собираем новый Docker-образ с тегом commit SHA
         run: |
           cd stage-02-docker/app
-          python3 -m py_compile app.py
-          echo "✅ Синтаксис Python в полном порядке!"
+          docker build -t devops-app:${{ github.sha }} .
 
-      # 3. Собираем Docker-образ (тот самый "завод")
-      - name: 🐳 Собираем Docker-образ
+      - name: 📦 Загружаем образ в локальный кластер kind
         run: |
-          cd stage-02-docker/app
-          docker build -t devops-app:ci-build .
+          kind load docker-image devops-app:${{ github.sha }} --name devops-lab
 
-      # 4. Проверяем, что образ действительно создался
-      - name: 🏷️ Показываем созданный образ
-        run: docker images devops-app
+      - name: 📝 Обновляем манифест Kubernetes новым тегом образа
+        run: |
+          sed -i "s|image: devops-app:.*|image: devops-app:${{ github.sha }}|g" stage-03-kubernetes/manifests/app-deployment.yaml
+
+      - name: ☸️ Применяем манифесты к кластеру (Deploy!)
+        run: |
+          kubectl apply -f stage-03-kubernetes/manifests/app-deployment.yaml
+          kubectl apply -f stage-03-kubernetes/manifests/app-service.yaml
+
+      - name: ⏳ Ждём успешного Rolling Update
+        run: |
+          kubectl rollout status deployment/devops-app --timeout=60s
