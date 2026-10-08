@@ -4,5 +4,5 @@ metadata:
   name: app-config
 data:
   # Не-секретные настройки, которые можно менять "на лету"
-  WELCOME_MESSAGE: "👑 Приветствуем вас в DevOps Journey v3! (ConfigMap Edition)"
+  WELCOME_MESSAGE: "🤖 Этот текст пришёл из ConfigMap! GitOps и K8s дружат!"
   APP_ENV: "production"
