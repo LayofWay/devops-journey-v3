@@ -48,3 +48,31 @@
 Пароли не хранятся в открытом виде в коде или Dockerfile.
 Используется ansible-vault для шифрования секретов на этапе IaC.
 В Kubernetes секреты управляются через объект Secret, а конфигурации вынесены в ConfigMap.
+
+
+## 🛡️ Air-gapped Deployment (Обход сетевых ограничений)
+
+При развертывании в средах с нестабильным интернетом или VPN, рекомендуется использовать паттерн "Air-gapped deployment":
+
+### Шаг 1: Скачивание образов на хост-машину
+```bash
+docker pull quay.io/prometheus/prometheus:v2.47.2
+docker pull quay.io/prometheus/alertmanager:v0.26.0
+docker pull quay.io/prometheus/node-exporter:v1.6.1
+docker pull registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0
+docker pull quay.io/prometheus-operator/prometheus-operator:v0.68.0
+docker pull grafana/grafana:10.1.5
+
+### Шаг 2: Загрузка образов в кластер kind
+kind load docker-image quay.io/prometheus/prometheus:v2.47.2 --name devops-lab
+kind load docker-image quay.io/prometheus/alertmanager:v0.26.0 --name devops-lab
+kind load docker-image quay.io/prometheus/node-exporter:v1.6.1 --name devops-lab
+kind load docker-image registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.10.0 --name devops-lab
+kind load docker-image quay.io/prometheus-operator/prometheus-operator:v0.68.0 --name devops-lab
+kind load docker-image grafana/grafana:10.1.5 --name devops-lab
+
+### Шаг 3: Установка Helm-чарта (образы уже внутри кластера)
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace
+
