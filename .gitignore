@@ -19,3 +19,10 @@ __pycache__/
 Thumbs.db
 *.log 
 actions-runner/
+stage-05-cloud/yc-terraform-key.json
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl

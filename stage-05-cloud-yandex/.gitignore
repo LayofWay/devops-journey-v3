@@ -1,0 +1,10 @@
+# Игнорируем все файлы состояния Terraform (там могут быть пароли и ID)
+*.tfstate
+*.tfstate.backup
+
+# Игнорируем папку с загруженными плагинами провайдеров
+.terraform/
+.terraform.lock.hcl
+
+# ЖЁСТКО блокируем попадание ключа в Git
+yc-terraform-key.json
