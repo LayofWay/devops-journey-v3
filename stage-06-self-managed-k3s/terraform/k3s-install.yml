@@ -1,0 +1,78 @@
+---
+- name: Install k3s Cluster
+  hosts: k3s_cluster
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Disable swap temporarily
+      command: swapoff -a
+      ignore_errors: yes
+
+    - name: Disable swap permanently
+      lineinfile:
+        path: /etc/fstab
+        regexp: '.*swap.*'
+        state: absent
+
+    - name: Install prerequisites
+      apt:
+        name: [curl, apt-transport-https, ca-certificates]
+        state: present
+        update_cache: yes
+
+# --- ЗАДАЧИ ТОЛЬКО ДЛЯ МАСТЕРА ---
+- name: Install k3s on Master
+  hosts: master
+  become: yes
+  tasks:
+    - name: Download and install k3s server
+      shell: curl -sfL https://get.k3s.io | sh -
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for k3s to be ready
+      wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        timeout: 60
+
+    - name: Read k3s node token
+      command: cat /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_result
+      changed_when: false
+
+    - name: Save token to local file for workers
+      copy:
+        content: "{{ k3s_token_result.stdout }}"
+        dest: /tmp/k3s_token.txt
+      delegate_to: localhost
+      become: no
+
+    - name: Save master IP to local file
+      copy:
+        content: "{{ ansible_default_ipv4.address }}"
+        dest: /tmp/k3s_master_ip.txt
+      delegate_to: localhost
+      become: no
+
+# --- ЗАДАЧИ ТОЛЬКО ДЛЯ WORKER ---
+- name: Join Workers to k3s Cluster
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Read token from localhost
+      set_fact:
+        k3s_token: "{{ lookup('file', '/tmp/k3s_token.txt') | trim }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Read master IP from localhost
+      set_fact:
+        master_ip: "{{ lookup('file', '/tmp/k3s_master_ip.txt') | trim }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Download and install k3s agent
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -"
+      args:
+        creates: /usr/local/bin/k3s
