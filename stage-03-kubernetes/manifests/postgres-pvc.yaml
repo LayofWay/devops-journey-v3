@@ -5,6 +5,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce  # Только одна нода может писать сюда одновременно (стандарт для БД)
+  storageClassName: local-path # 🔥 Эта строка критически важна для k3s!
   resources:
     requests:
       storage: 1Gi   # Просим выделить 1 гигабайт места
