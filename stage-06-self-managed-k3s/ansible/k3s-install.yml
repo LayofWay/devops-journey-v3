@@ -76,3 +76,50 @@
       shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -"
       args:
         creates: /usr/local/bin/k3s
+
+# --- УСТАНОВКА ARGOCD ---
+- name: Install ArgoCD
+  hosts: master
+  become: yes
+  tasks:
+    - name: Create ArgoCD namespace
+      command: kubectl create namespace argocd
+      ignore_errors: yes
+
+    - name: Install ArgoCD
+      command: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+    - name: Wait for ArgoCD pods to be ready
+      shell: kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+      retries: 5
+      delay: 10
+
+    - name: Create ArgoCD admin password secret
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: argocd-initial-admin-secret
+            namespace: argocd
+          type: Opaque
+          stringData:
+            password: "DevOpsJourney2024!"  # 🔥 Фиксированный пароль
+
+    - name: Copy ArgoCD manifests to master
+      copy:
+        src: "{{ playbook_dir }}/../stage-03-kubernetes/manifests/{{ item }}"
+        dest: "/tmp/{{ item }}"
+      loop:
+        - argocd-repo-secret.yaml
+        - argocd-application.yaml
+
+    - name: Apply ArgoCD repository secret
+      command: kubectl apply -f /tmp/argocd-repo-secret.yaml
+
+    - name: Apply ArgoCD application
+      command: kubectl apply -f /tmp/argocd-application.yaml
+
+    - name: Wait for ArgoCD server to be accessible
+      shell: kubectl wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
