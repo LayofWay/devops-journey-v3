@@ -3,7 +3,6 @@
   hosts: k3s_cluster
   become: yes
   gather_facts: yes
-
   tasks:
     - name: Disable swap temporarily
       command: swapoff -a
@@ -50,7 +49,7 @@
 
     - name: Save master IP to local file
       copy:
-        content: "{{ ansible_default_ipv4.address }}"
+        content: "{{ inventory_hostname }}"
         dest: /tmp/k3s_master_ip.txt
       delegate_to: localhost
       become: no
@@ -81,6 +80,8 @@
 - name: Install ArgoCD
   hosts: master
   become: yes
+  vars_files:
+    - argocd-password.yml
   tasks:
     - name: Create ArgoCD namespace
       command: kubectl create namespace argocd
@@ -88,6 +89,7 @@
 
     - name: Install ArgoCD
       command: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      ignore_errors: yes
 
     - name: Wait for ArgoCD pods to be ready
       shell: kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
@@ -95,21 +97,16 @@
       delay: 10
 
     - name: Create ArgoCD admin password secret
-      kubernetes.core.k8s:
-        state: present
-        definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: argocd-initial-admin-secret
-            namespace: argocd
-          type: Opaque
-          stringData:
-            password: "DevOpsJourney2024!"  # 🔥 Фиксированный пароль
+      # 🔥 ИСПРАВЛЕНО: используем kubectl вместо kubernetes.core, чтобы не требовать Python-библиотек на сервере
+      shell: |
+        kubectl create secret generic argocd-initial-admin-secret \
+          -n argocd \
+          --from-literal=password="{{ argocd_admin_password }}" \
+          --dry-run=client -o yaml | kubectl apply -f -
 
     - name: Copy ArgoCD manifests to master
       copy:
-        src: "{{ playbook_dir }}/../stage-03-kubernetes/manifests/{{ item }}"
+        src: "~/devops-journey-v3/stage-03-kubernetes/manifests/{{ item }}"
         dest: "/tmp/{{ item }}"
       loop:
         - argocd-repo-secret.yaml
