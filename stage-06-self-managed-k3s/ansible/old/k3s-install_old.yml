@@ -1,0 +1,126 @@
+---
+- name: Install k3s Cluster
+  hosts: k3s_cluster
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Disable swap temporarily
+      command: swapoff -a
+      ignore_errors: yes
+
+    - name: Disable swap permanently
+      lineinfile:
+        path: /etc/fstab
+        regexp: '.*swap.*'
+        state: absent
+
+    - name: Install prerequisites
+      apt:
+        name: [curl, apt-transport-https, ca-certificates]
+        state: present
+        update_cache: yes
+
+# --- ЗАДАЧИ ТОЛЬКО ДЛЯ МАСТЕРА ---
+- name: Install k3s on Master
+  hosts: master
+  become: yes
+  tasks:
+    - name: Download and install k3s server
+      shell: curl -sfL https://get.k3s.io | sh -
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for k3s to be ready
+      wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        timeout: 60
+
+    - name: Read k3s node token
+      command: cat /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_result
+      changed_when: false
+
+    - name: Save token to local file for workers
+      copy:
+        content: "{{ k3s_token_result.stdout }}"
+        dest: /tmp/k3s_token.txt
+      delegate_to: localhost
+      become: no
+
+    - name: Save master IP to local file
+      copy:
+        content: "{{ inventory_hostname }}"
+        dest: /tmp/k3s_master_ip.txt
+      delegate_to: localhost
+      become: no
+
+# --- ЗАДАЧИ ТОЛЬКО ДЛЯ WORKER ---
+- name: Join Workers to k3s Cluster
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Read token from localhost
+      set_fact:
+        k3s_token: "{{ lookup('file', '/tmp/k3s_token.txt') | trim }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Read master IP from localhost
+      set_fact:
+        master_ip: "{{ lookup('file', '/tmp/k3s_master_ip.txt') | trim }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Download and install k3s agent
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -"
+      args:
+        creates: /usr/local/bin/k3s
+
+# --- УСТАНОВКА ARGOCD ---
+# --- УСТАНОВКА ARGOCD ---
+- name: Install ArgoCD
+  hosts: master
+  become: yes
+  tasks:
+    - name: Create ArgoCD namespace
+      command: kubectl create namespace argocd
+      ignore_errors: yes
+
+    - name: Install ArgoCD
+      command: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      ignore_errors: yes
+
+    - name: Wait for ArgoCD server to be accessible
+      shell: kubectl wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
+
+    - name: Fetch generated ArgoCD admin password from cluster
+      # ArgoCD сам генерирует этот секрет при первом запуске. Мы просто читаем его.
+      shell: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+      register: argocd_fetched_password
+      delegate_to: localhost
+      become: no
+      changed_when: false
+      retries: 5          # 🔥 На случай небольшой задержки инициализации
+      delay: 10
+      until: argocd_fetched_password.stdout != ""
+
+    - name: Save ArgoCD password to local file for safekeeping
+      copy:
+        content: "{{ argocd_fetched_password.stdout }}\n"
+        dest: "~/argocd-admin-password.txt"
+      delegate_to: localhost
+      become: no
+
+    - name: Copy ArgoCD manifests to master
+      copy:
+        src: "~/devops-journey-v3/stage-03-kubernetes/manifests/{{ item }}"
+        dest: "/tmp/{{ item }}"
+      loop:
+        - argocd-repo-secret.yaml
+        - argocd-application.yaml
+
+    - name: Apply ArgoCD repository secret
+      command: kubectl apply -f /tmp/argocd-repo-secret.yaml
+
+    - name: Apply ArgoCD application
+      command: kubectl apply -f /tmp/argocd-application.yaml

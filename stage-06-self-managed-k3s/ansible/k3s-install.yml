@@ -49,8 +49,22 @@
 
     - name: Save master IP to local file
       copy:
+        # 🔥 ИСПРАВЛЕНО: inventory_hostname ВСЕГДА берёт IP из inventory.ini (85.119.147.78)
         content: "{{ inventory_hostname }}"
         dest: /tmp/k3s_master_ip.txt
+      delegate_to: localhost
+      become: no
+
+    # 🔥 НОВЫЕ ЗАДАЧИ: Автоматическая подготовка kubeconfig на ноутбуке
+    # Они находятся в блоке MASTER, так как скачиваем файл именно с мастера
+    - name: Download k3s.yaml to local machine
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/k3s-config.yaml
+        flat: yes
+
+    - name: Update server IP in local k3s-config.yaml
+      shell: "sed -i 's/127.0.0.1/{{ inventory_hostname }}/g; s/localhost/{{ inventory_hostname }}/g' ~/k3s-config.yaml"
       delegate_to: localhost
       become: no
 
@@ -72,37 +86,47 @@
       become: no
 
     - name: Download and install k3s agent
+      # 🔥 Без 'creates', чтобы скрипт гарантированно перезаписал конфиг с правильным IP
       shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -"
-      args:
-        creates: /usr/local/bin/k3s
 
 # --- УСТАНОВКА ARGOCD ---
 - name: Install ArgoCD
   hosts: master
   become: yes
-  vars_files:
-    - argocd-password.yml
   tasks:
     - name: Create ArgoCD namespace
-      command: kubectl create namespace argocd
+      command: kubectl --kubeconfig ~/k3s-config.yaml create namespace argocd
       ignore_errors: yes
+      delegate_to: localhost
+      become: no
 
     - name: Install ArgoCD
-      command: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      command: kubectl --kubeconfig ~/k3s-config.yaml apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
       ignore_errors: yes
+      delegate_to: localhost
+      become: no
 
-    - name: Wait for ArgoCD pods to be ready
-      shell: kubectl wait --for=condition=Ready pods --all -n argocd --timeout=300s
+    - name: Wait for ArgoCD server to be accessible
+      shell: kubectl --kubeconfig ~/k3s-config.yaml wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
+      delegate_to: localhost
+      become: no
+
+    - name: Fetch generated ArgoCD admin password from cluster
+      shell: kubectl --kubeconfig ~/k3s-config.yaml -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+      register: argocd_fetched_password
+      delegate_to: localhost
+      become: no
+      changed_when: false
       retries: 5
       delay: 10
+      until: argocd_fetched_password.stdout != ""
 
-    - name: Create ArgoCD admin password secret
-      # 🔥 ИСПРАВЛЕНО: используем kubectl вместо kubernetes.core, чтобы не требовать Python-библиотек на сервере
-      shell: |
-        kubectl create secret generic argocd-initial-admin-secret \
-          -n argocd \
-          --from-literal=password="{{ argocd_admin_password }}" \
-          --dry-run=client -o yaml | kubectl apply -f -
+    - name: Save ArgoCD password to local file for safekeeping
+      copy:
+        content: "{{ argocd_fetched_password.stdout }}\n"
+        dest: "~/argocd-admin-password.txt"
+      delegate_to: localhost
+      become: no
 
     - name: Copy ArgoCD manifests to master
       copy:
@@ -111,12 +135,15 @@
       loop:
         - argocd-repo-secret.yaml
         - argocd-application.yaml
+      delegate_to: localhost
+      become: no
 
     - name: Apply ArgoCD repository secret
-      command: kubectl apply -f /tmp/argocd-repo-secret.yaml
+      command: kubectl --kubeconfig ~/k3s-config.yaml apply -f /tmp/argocd-repo-secret.yaml
+      delegate_to: localhost
+      become: no
 
     - name: Apply ArgoCD application
-      command: kubectl apply -f /tmp/argocd-application.yaml
-
-    - name: Wait for ArgoCD server to be accessible
-      shell: kubectl wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
+      command: kubectl --kubeconfig ~/k3s-config.yaml apply -f /tmp/argocd-application.yaml
+      delegate_to: localhost
+      become: no
