@@ -13,6 +13,9 @@ spec:
     metadata:
       labels:
         app: devops-app  # Метка, которую получат все созданные поды
+      annotations:
+        # 🔥 ВОТ ЭТА МАГИЧЕСКАЯ СТРОКА: говорит Reloader следить за всеми ConfigMap и Secret в этом неймспейсе
+        reloader.stakater.com/auto: "true"
     spec:
       containers:
         - name: app
