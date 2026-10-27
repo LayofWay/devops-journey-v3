@@ -4,5 +4,5 @@ metadata:
   name: app-config
 data:
   # Не-секретные настройки, которые можно менять "на лету"
-  WELCOME_MESSAGE: "🚀 GitOps работает! Изменение пришло из GitHub!🤯 ПОЛНЫЙ АВТОПИЛОТ! Reloader сделал restart сам!🏆 "
+  WELCOME_MESSAGE: "🚀 GitOps работает! Изменение пришло из GitHub!🤯 ПОЛНЫЙ АВТОПИЛОТ! Reloader сделал restart сам!🏆!!!!!! "
   APP_ENV: "production"
