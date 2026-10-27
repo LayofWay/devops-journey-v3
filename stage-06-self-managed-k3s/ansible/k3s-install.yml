@@ -147,3 +147,10 @@
       command: kubectl --kubeconfig ~/k3s-config.yaml apply -f /tmp/argocd-application.yaml
       delegate_to: localhost
       become: no
+    
+    # 🔥 НОВАЯ ЗАДАЧА: Автоматическая установка Stakater Reloader
+    - name: Install Stakater Reloader for automatic pod restarts
+      command: kubectl --kubeconfig ~/k3s-config.yaml apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
+      delegate_to: localhost
+      become: no
+      # kubectl apply идемпотентен, так что при повторном запуске он просто скажет "unchanged"
