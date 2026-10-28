@@ -87,7 +87,8 @@
 
     - name: Download and install k3s agent
       # 🔥 Без 'creates', чтобы скрипт гарантированно перезаписал конфиг с правильным IP
-      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -"
+      # 🔥 Добавлен флаг --with-node-id, чтобы избежать конфликтов имён хостов в облаке
+      shell: "curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} sh -s - --with-node-id"
 
 # --- УСТАНОВКА ARGOCD ---
 - name: Install ArgoCD
