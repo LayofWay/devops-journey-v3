@@ -3,9 +3,11 @@ kind: Ingress
 metadata:
   name: devops-app-ingress
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Эта аннотация говорит Traefik перенаправлять HTTP на HTTPS (на будущее)
+    # А пока она просто подтверждает, что мы используем Traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
-  ingressClassName: nginx  # Говорим, какой контроллер использовать
+  ingressClassName: traefik  # 🔥 ВАЖНО: указываем встроенный контроллер k3s
   rules:
 #    - host: devops-app.local  # Домен, по которому будем обращаться
     - http:
