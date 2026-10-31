@@ -1,0 +1,178 @@
+---
+- name: Install k3s Cluster (Local Download Mode)
+  hosts: k3s_cluster
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Disable swap temporarily
+      command: swapoff -a
+      ignore_errors: yes
+
+    - name: Disable swap permanently
+      lineinfile:
+        path: /etc/fstab
+        regexp: '.*swap.*'
+        state: absent
+
+    - name: Install prerequisites
+      apt:
+        name: [curl, apt-transport-https, ca-certificates]
+        state: present
+        update_cache: yes
+
+# --- ЗАДАЧИ ТОЛЬКО ДЛЯ МАСТЕРА ---
+- name: Install k3s on Master
+  hosts: master
+  become: yes
+  tasks:
+    - name: Download k3s install script to local machine
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+      delegate_to: localhost
+      become: no
+
+    - name: Copy install script to master server
+      copy:
+        src: /tmp/k3s-install.sh
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+
+    - name: Install k3s server from local script
+      shell: /tmp/k3s-install.sh
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Wait for k3s to be ready
+      wait_for:
+        path: /etc/rancher/k3s/k3s.yaml
+        timeout: 60
+
+    - name: Read k3s node token
+      command: cat /var/lib/rancher/k3s/server/node-token
+      register: k3s_token_result
+      changed_when: false
+
+    - name: Save token to local file for workers
+      copy:
+        content: "{{ k3s_token_result.stdout }}"
+        dest: /tmp/k3s_token.txt
+      delegate_to: localhost
+      become: no
+
+    - name: Save master IP to local file
+      copy:
+        content: "{{ inventory_hostname }}"
+        dest: /tmp/k3s_master_ip.txt
+      delegate_to: localhost
+      become: no
+
+    - name: Download k3s.yaml to local machine
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: ~/k3s-config-local.yaml
+        flat: yes
+
+    - name: Update server IP in local k3s-config.yaml
+      shell: "sed -i 's/127.0.0.1/{{ inventory_hostname }}/g; s/localhost/{{ inventory_hostname }}/g' ~/k3s-config-local.yaml"
+      delegate_to: localhost
+      become: no
+
+# --- ЗАДАЧИ ТОЛЬКО ДЛЯ WORKER ---
+- name: Join Workers to k3s Cluster
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Read token from localhost
+      set_fact:
+        k3s_token: "{{ lookup('file', '/tmp/k3s_token.txt') | trim }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Read master IP from localhost
+      set_fact:
+        master_ip: "{{ lookup('file', '/tmp/k3s_master_ip.txt') | trim }}"
+      delegate_to: localhost
+      become: no
+
+    - name: Download k3s install script to local machine (for workers)
+      get_url:
+        url: https://get.k3s.io
+        dest: /tmp/k3s-install-worker.sh
+        mode: '0755'
+      delegate_to: localhost
+      become: no
+
+    - name: Copy install script to worker server
+      copy:
+        src: /tmp/k3s-install-worker.sh
+        dest: /tmp/k3s-install.sh
+        mode: '0755'
+
+    - name: Install k3s agent from local script
+      shell: "K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ k3s_token }} /tmp/k3s-install.sh --with-node-id"
+
+# --- УСТАНОВКА ARGOCD ---
+- name: Install ArgoCD
+  hosts: master
+  become: yes
+  tasks:
+    - name: Create ArgoCD namespace
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml create namespace argocd
+      ignore_errors: yes
+      delegate_to: localhost
+      become: no
+
+    - name: Install ArgoCD
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+      ignore_errors: yes
+      delegate_to: localhost
+      become: no
+
+    - name: Wait for ArgoCD server to be accessible
+      shell: kubectl --kubeconfig ~/k3s-config-local.yaml wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
+      delegate_to: localhost
+      become: no
+
+    - name: Fetch generated ArgoCD admin password from cluster
+      shell: kubectl --kubeconfig ~/k3s-config-local.yaml -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+      register: argocd_fetched_password
+      delegate_to: localhost
+      become: no
+      changed_when: false
+      retries: 5
+      delay: 10
+      until: argocd_fetched_password.stdout != ""
+
+    - name: Save ArgoCD password to local file for safekeeping
+      copy:
+        content: "{{ argocd_fetched_password.stdout }}\n"
+        dest: "~/argocd-admin-password-local.txt"
+      delegate_to: localhost
+      become: no
+
+    - name: Copy ArgoCD manifests to master
+      copy:
+        src: "~/devops-journey-v3/stage-03-kubernetes/manifests/{{ item }}"
+        dest: "/tmp/{{ item }}"
+      loop:
+        - argocd-repo-secret.yaml
+        - argocd-application.yaml
+      delegate_to: localhost
+      become: no
+
+    - name: Apply ArgoCD repository secret
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f /tmp/argocd-repo-secret.yaml
+      delegate_to: localhost
+      become: no
+
+    - name: Apply ArgoCD application
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f /tmp/argocd-application.yaml
+      delegate_to: localhost
+      become: no
+
+    - name: Install Stakater Reloader
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
+      delegate_to: localhost
+      become: no
