@@ -3,19 +3,23 @@ kind: Ingress
 metadata:
   name: devops-app-ingress
   annotations:
-    # Эта аннотация говорит Traefik перенаправлять HTTP на HTTPS (на будущее)
-    # А пока она просто подтверждает, что мы используем Traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    # Говорим cert-manager использовать этот ClusterIssuer для получения сертификата
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
-  ingressClassName: traefik  # 🔥 ВАЖНО: указываем встроенный контроллер k3s
+  ingressClassName: traefik
+  # 🔥 ДОБАВЛЯЕМ СЕКЦИЮ TLS
+  tls:
+    - hosts:
+        - app.my-devops-site.ru  # 🔥 ЗАМЕНИ НА СВОЙ ДОМЕН!
+      secretName: devops-app-tls # Сюда cert-manager сохранит готовый сертификат
   rules:
-#    - host: devops-app.local  # Домен, по которому будем обращаться
-    - http:
+    - host: app.my-devops-site.ru # 🔥 ЗАМЕНИ НА СВОЙ ДОМЕН!
+      http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: devops-app-service  # Куда направлять трафик
+                name: devops-app-service
                 port:
                   number: 80
