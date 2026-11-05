@@ -6,9 +6,14 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/layofway/devops-journey-v3.git
+    repoURL: https://github.com/LayofWay/devops-journey-v3.git
     targetRevision: HEAD
-    path: stage-03-kubernetes/manifests
+    # 🔥 МЕНЯЕМ ПУТЬ: теперь ArgoCD смотрит в папку с Helm-чартом
+    path: stage-03-kubernetes/devops-app-chart
+    # 🔥 ГОВОРИМ ARGOCD, ЧТО ЭТО HELM, И ПЕРЕДАЁМ ЕМУ values.yaml
+    helm:
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -16,5 +21,3 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
