@@ -155,3 +155,19 @@
       delegate_to: localhost
       become: no
       # kubectl apply идемпотентен, так что при повторном запуске он просто скажет "unchanged"
+
+    # 🔥 НОВАЯ ЗАДАЧА: Установка Cert-Manager (Фундамент для HTTPS)
+    - name: Install Cert-Manager via official YAML
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.ya>
+      delegate_to: localhost
+      become: no
+    - name: Install Cert-Manager via official YAML
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.ya>
+      delegate_to: localhost
+      become: no
+
+    # 🔥 НОВАЯ ЗАДАЧА: Создаём ClusterIssuer для Let's Encrypt
+    - name: Apply Let's Encrypt ClusterIssuer
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f ~/devops-journey-v3/stage-03-kubernetes/manifests/letsencrypt-issuer.yaml
+      delegate_to: localhost
+      become: no
