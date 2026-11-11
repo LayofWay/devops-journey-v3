@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'stage-02-docker/app.py'
-      - 'stage-02-docker/Dockerfile'
+      - 'stage-02-docker/app/app.py'
+      - 'stage-02-docker/app/Dockerfile'
 
 jobs:
   build-and-push:
@@ -27,7 +27,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./stage-02-docker/
+          context: ./stage-02-docker/app/
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/devops-flask-app:latest
