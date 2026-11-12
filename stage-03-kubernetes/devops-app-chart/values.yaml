@@ -188,11 +188,6 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
 
 # Данные для ConfigMap
 config:
@@ -202,3 +197,16 @@ config:
 # Чтобы закодировать: echo -n 'mysecretpassword' | base64
 secret:
   db-password: U3VwZXJTZWNyZXREYlBhc3MyMDI2  # <-- ЗАМЕНИ НА СВОЙ BASE64 ПАРОЛЬ, ЕСЛИ ОН ДРУГОЙ!
+
+
+# 🔥 Жёсткое правило: НИКОГДА не запускать это приложение на мастере
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        # В k3s мастер имеет обе эти метки. Мы говорим: "Ищи узлы, где этих меток НЕТ"
+        - key: node-role.kubernetes.io/control-plane
+          operator: DoesNotExist
+        - key: node-role.kubernetes.io/master
+          operator: DoesNotExist
