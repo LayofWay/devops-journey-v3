@@ -1,0 +1,24 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: devops-app-updater
+  namespace: argocd
+spec:
+  # Говорим, для какого ArgoCD Application это работает
+  applicationRefs:
+    - namePattern: "devops-app"
+      images:
+        - alias: "flaskapp"
+          imageName: "layofway/devops-flask-app"
+          commonUpdateSettings:
+            updateStrategy: "latest"
+          manifestTargets:
+            helm:
+              name: "image.repository"
+              tag: "image.tag"
+  
+  # Говорим, как записывать изменения обратно в Git
+  writeBackConfig:
+    method: "git"
+    gitConfig:
+      writeBackTarget: "helmvalues:./stage-03-kubernetes/devops-app-chart/values.yaml"
