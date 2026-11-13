@@ -30,5 +30,7 @@ jobs:
           context: ./stage-02-docker/app/
           push: true
           tags: |
+            # Оставляем latest для ручного деплоя, если нужно
             ${{ secrets.DOCKER_USERNAME }}/devops-flask-app:latest
-            ${{ secrets.DOCKER_USERNAME }}/devops-flask-app:${{ github.sha }}
+            # 🔥 ДОБАВЛЯЕМ УНИКАЛЬНЫЙ SEMVER ТЕГ НА ОСНОВЕ НОМЕРА ЗАПУСКА
+            ${{ secrets.DOCKER_USERNAME }}/devops-flask-app:v1.0.${{ github.run_number }}

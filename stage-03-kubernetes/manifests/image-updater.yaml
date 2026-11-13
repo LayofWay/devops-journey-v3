@@ -11,7 +11,8 @@ spec:
         - alias: "flaskapp"
           imageName: "layofway/devops-flask-app"
           commonUpdateSettings:
-            updateStrategy: "latest"
+            updateStrategy: "semver"
+            allowTags: "regexp:^v1\\.0\\.[0-9]+$" # 🔥 ИЩЕМ ТОЛЬКО ТЕГИ ВИДА v1.0.X
           manifestTargets:
             helm:
               name: "image.repository"
