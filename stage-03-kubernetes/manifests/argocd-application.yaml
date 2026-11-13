@@ -3,6 +3,20 @@ kind: Application
 metadata:
   name: devops-app
   namespace: argocd
+  annotations:
+    # 1. Говорим следить за образом layofway/devops-flask-app и даём ему алиас "flaskapp"
+    argocd-image-updater.argoproj.io/image-list: flaskapp=layofway/devops-flask-app
+    
+    # 2. Стратегия: брать самый свежий тег (по дате публикации)
+    argocd-image-updater.argoproj.io/flaskapp.update-strategy: latest
+    
+    # 3. Указываем, какие поля в Helm-чарте (values.yaml) нужно менять
+    argocd-image-updater.argoproj.io/flaskapp.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/flaskapp.helm.image-tag: image.tag
+    
+    # 4. Говорим записывать изменения обратно в Git!
+    argocd-image-updater.argoproj.io/write-back-method: git
+    argocd-image-updater.argoproj.io/write-back-target: helmvalues:./stage-03-kubernetes/devops-app-chart/values.yaml
 spec:
   project: default
   source:
