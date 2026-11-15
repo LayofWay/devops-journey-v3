@@ -9,7 +9,7 @@ replicaCount: 3
 image:
   repository: layofway/devops-flask-app
   # This sets the pull policy for images.
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "v1.0.7" # ← РЕАЛЬНО СУЩЕСТВУЮЩИЙ ТЕГ!
 
