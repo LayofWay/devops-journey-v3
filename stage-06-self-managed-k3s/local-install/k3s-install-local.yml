@@ -194,6 +194,11 @@
       command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
       delegate_to: localhost
       become: no
+      retries: 3
+      delay: 15
+      register: cert_manager_result
+      until: cert_manager_result.rc == 0
+
 
       # 🔥 НОВАЯ ЗАДАЧА: Ждём, пока вебхук Cert-Manager реально запустится
     - name: Wait for Cert-Manager webhook to be ready
