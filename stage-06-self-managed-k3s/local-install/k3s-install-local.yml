@@ -211,3 +211,7 @@
       command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f ~/devops-journey-v3/stage-03-kubernetes/manifests/letsencrypt-issuer.yaml
       delegate_to: localhost
       become: no
+      retries: 5          # 🔥 Пробуем до 5 раз
+      delay: 10           # 🔥 Ждём 10 секунд между попытками
+      register: issuer_result
+      until: issuer_result.rc == 0
