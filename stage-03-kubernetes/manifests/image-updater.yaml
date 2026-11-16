@@ -4,7 +4,6 @@ metadata:
   name: devops-app-updater
   namespace: argocd
 spec:
-  # Говорим, для какого ArgoCD Application это работает
   applicationRefs:
     - namePattern: "devops-app"
       images:
@@ -12,14 +11,15 @@ spec:
           imageName: "layofway/devops-flask-app"
           commonUpdateSettings:
             updateStrategy: "semver"
-            allowTags: "regexp:^v1\\.0\\.[0-9]+$" # 🔥 ИЩЕМ ТОЛЬКО ТЕГИ ВИДА v1.0.X
+            allowTags: "regexp:^v1\\.0\\.[0-9]+$"
           manifestTargets:
             helm:
               name: "image.repository"
               tag: "image.tag"
   
-  # Говорим, как записывать изменения обратно в Git
   writeBackConfig:
-    method: "git"
+    method: "git" # 🔥 ПРОСТО "git". Он возьмёт креды из ConfigMap!
     gitConfig:
+      repository: "https://github.com/LayofWay/devops-journey-v3.git"
+      branch: "main"
       writeBackTarget: "helmvalues:./stage-03-kubernetes/devops-app-chart/values.yaml"

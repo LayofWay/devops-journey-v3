@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-image-updater-config
+  namespace: argocd
+data:
+  applications_api: argocd
+  git.credentials: secret:argocd/argocd-image-updater-git-creds#creds
+  log.level: debug

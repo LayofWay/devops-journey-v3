@@ -26,3 +26,5 @@ stage-05-cloud/yc-terraform-key.json
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
+stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
