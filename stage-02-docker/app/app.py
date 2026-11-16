@@ -14,7 +14,7 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', 'SecurePass123!')
 def hello():
     #return "🚀 Hello, DevOps Journey v3! Приложение работает в контейнере!"
     # Читаем сообщение из переменной окружения, если её нет — берём дефолтную
-    msg = os.getenv('WELCOME_MESSAGE', '🚀 CI/CD работает!')
+    msg = os.getenv('WELCOME_MESSAGE', '🚀 CI/CD работает!!!')
     return msg
 
 @app.route('/db-check')
