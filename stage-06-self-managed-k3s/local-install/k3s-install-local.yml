@@ -245,8 +245,8 @@
       delegate_to: localhost
       become: no
 
-    - name: Apply Git Credentials Secret (Из локального файла, не из Git!)
-      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f ~/devops-journey-v3/stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
+    - name: Apply ArgoCD Repository Credentials (for Image Updater write-back)
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f ~/devops-journey-v3/stage-03-kubernetes/manifests/argocd-repo-creds-LOCAL.yaml
       delegate_to: localhost
       become: no
 

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-repo-creds
+  namespace: argocd
+  labels:
+    # 🔥 ЭТОТ LABEL — ВОЛШЕБНАЯ ПАЛОЧКА! ArgoCD распознаёт секрет как креды для репозитория
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  type: git
+  url: https://github.com/LayofWay/devops-journey-v3.git
+  username: layofway
+  password: ТВОЙТОКЕН
