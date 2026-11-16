@@ -28,3 +28,5 @@ stage-05-cloud/yc-terraform-key.json
 .terraform.lock.hcl
 stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
 stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
+stage-03-kubernetes/manifests/argocd-repo-creds-LOCAL.yaml
+stage-03-kubernetes/manifests/argocd-repo-creds-LOCAL.yaml

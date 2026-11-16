@@ -22,4 +22,4 @@ spec:
     gitConfig:
       repository: "https://github.com/LayofWay/devops-journey-v3.git"
       branch: "main"
-      writeBackTarget: "helmvalues:./stage-03-kubernetes/devops-app-chart/values.yaml"
+      writeBackTarget: "helmvalues:values.yaml"
