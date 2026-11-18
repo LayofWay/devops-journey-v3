@@ -5,6 +5,4 @@ metadata:
   namespace: argocd
 data:
   applications_api: argocd
-  # Вот здесь мы говорим ему взять креды из секрета, созданного на Шаге 1
-  git.credentials: secret:argocd/argocd-image-updater-git-creds#creds
   log.level: debug
