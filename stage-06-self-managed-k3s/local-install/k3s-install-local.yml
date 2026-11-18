@@ -170,23 +170,22 @@
       delegate_to: localhost
       become: no
 
-    - name: Copy ArgoCD manifests to master
+    # 🔥 ИСПРАВЛЕНИЕ: Копируем и применяем ТОЛЬКО application.yaml.
+    # Секреты репозитория теперь управляются централизованно через argocd-repo-creds-LOCAL.yaml ниже.
+    - name: Copy ArgoCD application manifest to master
       copy:
-        src: "~/devops-journey-v3/stage-03-kubernetes/manifests/{{ item }}"
-        dest: "/tmp/{{ item }}"
-      loop:
-        - argocd-repo-secret.yaml
-        - argocd-application.yaml
-      delegate_to: localhost
-      become: no
-
-    - name: Apply ArgoCD repository secret
-      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f /tmp/argocd-repo-secret.yaml
+        src: "~/devops-journey-v3/stage-03-kubernetes/manifests/argocd-application.yaml"
+        dest: "/tmp/argocd-application.yaml"
       delegate_to: localhost
       become: no
 
     - name: Apply ArgoCD application
       command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f /tmp/argocd-application.yaml
+      delegate_to: localhost
+      become: no
+
+    - name: Install Stakater Reloader
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
       delegate_to: localhost
       become: no
 
