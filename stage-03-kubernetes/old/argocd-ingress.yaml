@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Говорим Traefik, что ArgoCD сам управляет своим TLS, или пусть Traefik терминирует HTTPS
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Важная аннотация для ArgoCD, чтобы он знал, что находится за Ingress
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  rules:
+    - host: argocd.my-devops-site.ru # 🔥 ТВОЙ ПОДДОМЕН ДЛЯ ARGOCD
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  name: https
+  tls:
+    - hosts:
+        - argocd.my-devops-site.ru
+      secretName: argocd-server-tls

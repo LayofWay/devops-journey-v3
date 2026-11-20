@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    cert-manager.io/ccuster-issuer: "letsencrypt-prod"
+    # Заставляем Traefik использовать защищённую точку входа (443)
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Включаем TLS на уровне роутера
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # 🔥 ВОЛШЕБНАЯ АННОТАЦИЯ: говорим Traefik, что бэкенд использует cleartext HTTP/2 (h2c)
+    traefik.ingress.kubernetes.io/service.serversscheme: h2c
+spec:
+  ingressClassName: traefik # Явно указываем класс для k3s
+  rules:
+    - host: argocd.my-devops-site.ru
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  name: http # Порт 80, который внутри пробрасывается на 8080
+  tls:
+    - hosts:
+        - argocd.my-devops-site.ru
+      secretName: argocd-server-tls
