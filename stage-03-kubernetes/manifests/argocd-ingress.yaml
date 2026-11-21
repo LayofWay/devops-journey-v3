@@ -4,7 +4,7 @@ metadata:
   name: argocd-server-ingress
   namespace: argocd
   annotations:
-    cert-manager.io/ccuster-issuer: "letsencrypt-prod"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     # Заставляем Traefik использовать защищённую точку входа (443)
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     # Включаем TLS на уровне роутера

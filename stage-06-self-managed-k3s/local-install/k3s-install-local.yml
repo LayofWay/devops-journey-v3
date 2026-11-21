@@ -274,3 +274,54 @@
       command: kubectl --kubeconfig ~/k3s-config-local.yaml rollout restart deployment argocd-image-updater-controller -n argocd
       delegate_to: localhost
       become: no
+
+        # 🔥 ДОСТУП К ARGOCD ЧЕРЕЗ ДОМЕН (HTTPS) 🔥
+
+    - name: Enable insecure mode for ArgoCD server (via ConfigMap)
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml patch configmap argocd-cmd-params-cm -n argocd --type merge -p '{"data":{"server.insecure":"true"}}'
+      delegate_to: localhost
+      become: no
+
+    - name: Apply ArgoCD Ingress manifest
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f ~/devops-journey-v3/stage-03-kubernetes/manifests/argocd-ingress.yaml
+      delegate_to: localhost
+      become: no
+
+    - name: Restart ArgoCD server to apply insecure mode
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml rollout restart deployment argocd-server -n argocd
+      delegate_to: localhost
+      become: no
+
+    - name: Wait for ArgoCD server to be ready after restart
+      shell: kubectl --kubeconfig ~/k3s-config-local.yaml wait --for=condition=Available deployment/argocd-server -n argocd --timeout=120s
+      delegate_to: localhost
+      become: no
+
+    - name: Pause to let Cert-Manager finish processing the main app certificate first
+      pause:
+        seconds: 30
+      delegate_to: localhost
+      become: no
+
+        # 🔥 УМНОЕ ОЖИДАНИЕ СЕРТИФИКАТА (POSIX-совместимый цикл + запас времени) 🔥
+    - name: Wait for ArgoCD Certificate resource to be created and Ready
+      shell: |
+        i=1
+        while [ $i -le 30 ]; do
+          if kubectl --kubeconfig ~/k3s-config-local.yaml get certificate argocd-server-tls -n argocd >/dev/null 2>&1; then
+            echo "Certificate resource found! Waiting for it to be Ready..."
+            kubectl --kubeconfig ~/k3s-config-local.yaml wait --for=condition=Ready certificate/argocd-server-tls -n argocd --timeout=120s
+            exit $?
+          fi
+          echo "Waiting for Cert-Manager to create the Certificate resource... (attempt $i/30)"
+          sleep 10
+          i=$((i + 1))
+        done
+        echo "ERROR: Certificate resource was not created after 300 seconds."
+        echo "--- Cert-Manager Logs ---"
+        kubectl --kubeconfig ~/k3s-config-local.yaml logs -n cert-manager deploy/cert-manager --tail=30
+        exit 1
+      delegate_to: localhost
+      become: no
+      register: argocd_cert_result
+      failed_when: argocd_cert_result.rc != 0
