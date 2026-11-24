@@ -27,7 +27,8 @@ stage-05-cloud/yc-terraform-key.json
 *.tfstate.backup
 .terraform.lock.hcl
 stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
-stage-03-kubernetes/manifests/git-creds-secret-LOCAL.yaml
-stage-03-kubernetes/manifests/argocd-repo-creds-LOCAL.yaml
 stage-03-kubernetes/manifests/argocd-repo-creds-LOCAL.yaml
 stage-07-terraform-selectel/terraform.tfvars
+stage-07-terraform-selectel/direct-ip/terraform.tfvars
+stage-07-terraform-selectel/floating-ip/terraform.tfvars
+stage-07-terraform-selectel/floating-nat/terraform.tfvars

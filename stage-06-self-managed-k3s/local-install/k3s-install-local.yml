@@ -54,8 +54,7 @@
         mode: '0755'
     
     - name: Install k3s server from local script (Только Control Plane, без worker-нагрузки)
-      shell: INSTALL_K3S_SKIP_DOWNLOAD=true /tmp/k3s-install.sh
-      
+      shell: INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC="--tls-san {{ inventory_hostname }}" /tmp/k3s-install.sh
     - name: Wait for k3s to be ready
       wait_for:
         path: /etc/rancher/k3s/k3s.yaml
