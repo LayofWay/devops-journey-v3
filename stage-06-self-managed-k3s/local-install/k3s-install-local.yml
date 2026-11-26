@@ -135,6 +135,25 @@
   hosts: master
   become: yes
   tasks:
+    # Напправляем кластер на свежий DNS (обходим кэш Selectel)
+    - name: Point CoreDNS to fresh public DNS (avoid Selectel stale cache)
+      shell: |
+        kubectl --kubeconfig ~/k3s-config-local.yaml -n kube-system get cm coredns -o yaml \
+          | sed 's|forward . /etc/resolv.conf|forward . 8.8.8.8 1.1.1.1|' \
+          | kubectl --kubeconfig ~/k3s-config-local.yaml apply -f -
+      delegate_to: localhost
+      become: no
+
+    - name: Restart CoreDNS to apply new forwarders
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml -n kube-system rollout restart deployment coredns
+      delegate_to: localhost
+      become: no
+
+    - name: Wait for CoreDNS rollout
+      command: kubectl --kubeconfig ~/k3s-config-local.yaml -n kube-system rollout status deployment coredns --timeout=60s
+      delegate_to: localhost
+      become: no
+
     - name: Create ArgoCD namespace
       command: kubectl --kubeconfig ~/k3s-config-local.yaml create namespace argocd
       ignore_errors: yes
@@ -187,13 +206,8 @@
       command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
       delegate_to: localhost
       become: no
-
-    - name: Install Stakater Reloader
-      command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://raw.githubusercontent.com/stakater/Reloader/master/deployments/kubernetes/reloader.yaml
-      delegate_to: localhost
-      become: no
-
-    # 🔥 НОВАЯ ЗАДАЧА: Установка Cert-Manager (Фундамент для HTTPS)
+      
+      # НОВАЯ ЗАДАЧА: Установка Cert-Manager (Фундамент для HTTPS)
     - name: Install Cert-Manager via official YAML
       command: kubectl --kubeconfig ~/k3s-config-local.yaml apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
       delegate_to: localhost
